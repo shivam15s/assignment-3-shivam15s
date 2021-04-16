@@ -95,8 +95,8 @@ class LogisticRegression():
 
             self.X = X_batches[i%n_batches]
             self.y = y_batches[i%n_batches]
-            grad_mse = grad(self.xentropy)
-            grad_i = grad_mse(self.coef_)
+            grad_xent = grad(self.xentropy)
+            grad_i = grad_xent(self.coef_)
             self.coef_ -= alpha*grad_i
         
         self.X = X
