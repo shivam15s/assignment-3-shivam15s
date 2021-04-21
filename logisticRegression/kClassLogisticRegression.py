@@ -120,7 +120,7 @@ class kClassLogisticRegression():
 
         cost = 0
         for i in range(self.X.shape[0]):
-            cost -= anp.log(y_hat[i, self.y[i]])
+            cost -= anp.log(y_hat[i, self.y.iloc[i]])
         return cost
 
 
