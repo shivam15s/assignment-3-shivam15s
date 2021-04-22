@@ -110,9 +110,10 @@ class LogisticRegression():
 
         cost = -1 * (anp.dot(self.y.T, anp.log(y_hat)) + anp.dot((1 - self.y).T, anp.log(1 - y_hat)))
         if self.regularization == 'L1':
-            cost += self.reg_lambda * anp.abs(anp.sum(coef))
+            cost += self.reg_lambda * anp.sum(anp.abs(coef))
         elif self.regularization == 'L2':
             cost += self.reg_lambda * anp.dot(coef.T, coef)
+        #print(cost)
         return cost
 
 

@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import load_breast_cancer
 from sklearn.preprocessing import MinMaxScaler
 from logisticRegression.logisticRegression import LogisticRegression
+from tqdm import tqdm
 from metrics import *
 
 np.random.seed(42)
@@ -21,6 +22,7 @@ folds_inner = 5
 fold_size = X.shape[0]//folds_outer
 datasets = [X.iloc[fold_size*i: fold_size*(i+1)] for i in range(folds_outer)]
 #5 folds cross validation
+print("\n----------5 Fold Cross Validation----------")
 for itr1 in range(folds_outer):
     X_test = datasets[itr1]
     y_test = y[X_test.index].reset_index(drop=True)
@@ -42,11 +44,11 @@ for itr1 in range(folds_outer):
     acc = {}
     print("Outer Fold {}: ".format(itr1 + 1))
 
-    reg_lambda_l2 = 0.2
-    reg_lambda_l2_inc = 0.2
+    reg_lambda_l2 = 0.4
+    reg_lambda_l2_inc = 0.4
 
-    reg_lambda_l1 = 0.1
-    reg_lambda_l1_inc = 0.1
+    reg_lambda_l1 = 0.2
+    reg_lambda_l1_inc = 0.2
 
     acc_l2 = []
     acc_l1 = []
@@ -103,3 +105,29 @@ for itr1 in range(folds_outer):
     LR2.fit_autograd(X_t, y_t, X_t.shape[0], n_iter = 100, lr=2) 
     y_hat = LR2.predict(X_test)
     print("\tTest accuracy using L2 Lambda = {:.2f}: ".format(best_l2_lambda), accuracy(y_hat, y_test))
+
+
+print("\n----------L1 Regularization Plots----------")
+l1_lambda = np.arange(0, 50, 1)
+#l1_lambda = [0, 1000]
+coef = {}
+for curr_lambda in tqdm(l1_lambda):
+    LR = LogisticRegression(fit_intercept=False, regularization='L1', reg_lambda=curr_lambda)
+    LR.fit_autograd(X, y, X.shape[0], n_iter = 100, lr = 1)
+    for i in range(10):
+        try:
+            coef[i].append(LR.coef_[i])
+        except:
+            coef[i] = [LR.coef_[i]]
+
+figure = plt.figure()
+for i in range(10):
+    plt.plot(l1_lambda, coef[i], label="Theta {}".format(i))
+    
+plt.ylim(-5, 5)
+plt.xlabel("Lambda")
+plt.ylabel("Theta")
+plt.title("Theta vs Lambda")
+plt.legend(loc='lower right')
+#plt.show()
+figure.savefig('plots/q2_b.png')
