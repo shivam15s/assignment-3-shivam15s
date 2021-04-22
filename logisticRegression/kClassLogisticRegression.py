@@ -139,7 +139,7 @@ class kClassLogisticRegression():
         else:
             X = np.array(X)
 
-        y_hat_t = np.dot(self.X, self.coef_)
+        y_hat_t = np.dot(X, self.coef_)
         y_hat_t -= np.max(y_hat_t, axis=1)[:, np.newaxis]
         y_hat = np.exp(y_hat_t)/np.sum(np.exp(y_hat_t), axis=1)[:, np.newaxis]
 

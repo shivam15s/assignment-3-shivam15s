@@ -55,7 +55,7 @@ class LogisticRegression():
                 alpha = lr/(i+1)
 
             y_hat = self.sigmoid(np.dot(X_batches[i%n_batches], self.coef_))
-            self.coef_ -= alpha * np.dot(X_batches[i%n_batches].T, (y_hat - y_batches[i%n_batches]))
+            self.coef_ -= (alpha/X_batches[i%n_batches].shape[0]) * np.dot(X_batches[i%n_batches].T, (y_hat - y_batches[i%n_batches]))
             #self.coef_ -= 2 * alpha / (X_batches[i%n_batches].shape[0]) * X_batches[i%n_batches].T @ (y_hat -  y_batches[i%n_batches])
         self.X = X
         self.y = y
@@ -97,7 +97,7 @@ class LogisticRegression():
             self.y = y_batches[i%n_batches]
             grad_xent = grad(self.xentropy)
             grad_i = grad_xent(self.coef_)
-            self.coef_ -= alpha*grad_i
+            self.coef_ -= (alpha/self.X.shape[0])*grad_i
         
         self.X = X
         self.y = y
@@ -116,22 +116,6 @@ class LogisticRegression():
         elif self.regularization == 'L2':
             cost += self.reg_lambda * anp.dot(coef.T, coef)
         return cost
-
-    def fit_normal(self, X, y):
-        '''
-        Function to train model using the normal equation method.
-
-        :param X: pd.DataFrame with rows as samples and columns as features (shape: (n_samples, n_features))
-        :param y: pd.Series with rows corresponding to output (shape: (n_samples,))
-
-        :return None
-        '''
-        if self.fit_intercept:
-            X = np.c_[np.ones((X.shape[0], 1)), np.array(X)]
-        else:
-            X = np.array(X)
-
-        self.coef_ = np.linalg.inv(X.T @ X) @ X.T @ y
 
 
     def predict(self, X):
@@ -154,109 +138,31 @@ class LogisticRegression():
 
         return y_hat.reshape((N, ))
 
-    def plot_surface(self, X, y, t_0, t_1):
-        """
-        Function to plot RSS (residual sum of squares) in 3D. A surface plot is obtained by varying
-        theta_0 and theta_1 over a range. Indicates the RSS based on given value of t_0 and t_1 by a
-        red dot. Uses self.coef_ to calculate RSS. Plot must indicate error as the title.
-
-        :param y: pd.Series with rows corresponding to output (shape: (n_samples,))
-        :param t_0: Value of theta_0 for which to indicate RSS
-        :param t_1: Value of theta_1 for which to indicate RSS
-
-        :return matplotlib figure plotting RSS
-        """
+    def plot_decision_boundary(self):
+        # [1 x1 x2] * [w1 w2 w3].T = 0 => w1 + w2*x1 + w3*x2 = 0
         figure = plt.figure(figsize=(10, 7))
-        x_min, x_max = self.coef_[0] - 10, self.coef_[0] + 10
-        y_min, y_max = self.coef_[1] - 10, self.coef_[1] + 10
-        h = 0.1
-        xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                                np.arange(y_min, y_max, h))
-        Z = np.apply_along_axis(self.rss, 1, np.c_[xx.ravel(), yy.ravel()])
-        Z = Z.reshape(xx.shape)
-        ax = figure.add_subplot(111, projection='3d')
+        w1, w2, w3 = self.coef_
+        slope = -w2/w3
+        intercept = -w1/w3
+        x_min, x_max = -0.2, 1.2
+        y_min, y_max = -1.8, 2.0
 
-        print(t_0, t_1, self.rss(np.array([t_0, t_1])))
+        xx = np.arange(x_min, x_max, 0.05)
+        yy = slope*xx + intercept
 
-        if self.t_0_list == None:
-            self.t_0_list = []
-            self.t_1_list = []
-        self.t_0_list.append(t_0)
-        self.t_1_list.append(t_1)
-        for i in range(len(self.t_0_list)):
-            ax.scatter(self.t_0_list[i], self.t_1_list[i], self.rss(np.array([self.t_0_list[i], self.t_1_list[i]]))+100, s=50, color="red")
-            
-        #ax.scatter(t_0, t_1, self.rss(np.array([t_0, t_1]))+100, s=100, color="red")
-        surf = ax.plot_surface(xx, yy, Z, cmap='viridis', alpha=0.4)
-        figure.colorbar(surf, shrink=0.5, aspect=10, pad=0.15)
-        ax.set_xlabel("b", fontsize=13, labelpad=6)
-        ax.set_ylabel("m", fontsize=13, labelpad=6)
-        ax.set_zlabel("RSS", fontsize=13, labelpad=12)
-        ax.set_title("RSS = {}".format(self.rss(np.array([t_0, t_1]))))
+        plt.plot(xx, yy, 'k', ls='--')
+        plt.fill_between(xx, yy, y_min, color='tab:blue', alpha=0.2)
+        plt.fill_between(xx, yy, y_max, color='tab:green', alpha=0.2)
+
+        X_df = pd.DataFrame(self.X)
+        label0 = X_df[self.y==0]
+        label1 = X_df[self.y==1]
+
+        plt.scatter(label0[1], label0[2], color='green', label='0')
+        plt.scatter(label1[1], label1[2], color='blue', label='1')
+
+        plt.xlabel("Attribute x1")
+        plt.ylabel("Attribute x2")
+        plt.title("Logistic Regression on Breast Cancer Dataset")
+        #plt.show()
         return figure
-
-
-    def plot_line_fit(self, X, y, t_0, t_1):
-        """
-        Function to plot fit of the line (y vs. X plot) based on chosen value of t_0, t_1. Plot must
-        indicate t_0 and t_1 as the title.
-
-        :param X: pd.DataFrame with rows as samples and columns as features (shape: (n_samples, n_features))
-        :param y: pd.Series with rows corresponding to output (shape: (n_samples,))
-        :param t_0: Value of theta_0 for which to plot the fit
-        :param t_1: Value of theta_1 for which to plot the fit
-
-        :return matplotlib figure plotting line fit
-        """
-        figure = plt.figure(figsize=(10, 7))
-        plt.scatter(X, y, color='blue')
-        plt.plot(X, t_0 + X*t_1, color='orange')
-        plt.xlim(np.min(X), np.max(X))
-        plt.ylim(np.min(y)-1, np.max(y)+1)
-        plt.xlabel("X")
-        plt.ylabel("y")
-        plt.title("m = {}   b = {}".format(t_1[0], t_0[0]))
-        return figure
-
-    def plot_contour(self, X, y, t_0, t_1):
-        """
-        Plots the RSS as a contour plot. A contour plot is obtained by varying
-        theta_0 and theta_1 over a range. Indicates the RSS based on given value of t_0 and t_1, and the
-        direction of gradient steps. Uses self.coef_ to calculate RSS.
-
-        :param X: pd.DataFrame with rows as samples and columns as features (shape: (n_samples, n_features))
-        :param y: pd.Series with rows corresponding to output (shape: (n_samples,))
-        :param t_0: Value of theta_0 for which to plot the fit
-        :param t_1: Value of theta_1 for which to plot the fit
-
-        :return matplotlib figure plotting the contour
-        """
-        figure = plt.figure(figsize=(10, 7))
-        x_min, x_max = self.coef_[0] - 10, self.coef_[0] + 10
-        y_min, y_max = self.coef_[1] - 10, self.coef_[1] + 10
-        h = 0.1
-        xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
-                                np.arange(y_min, y_max, h))
-        Z = np.apply_along_axis(self.rss, 1, np.c_[xx.ravel(), yy.ravel()])
-        Z = Z.reshape(xx.shape)
-        ax = figure.add_subplot(111)
-
-        print(t_0, t_1, self.rss(np.array([t_0, t_1])))
-
-        if self.t_0_list == None:
-            self.t_0_list = []
-            self.t_1_list = []
-        self.t_0_list.append(t_0)
-        self.t_1_list.append(t_1)
-        for i in range(len(self.t_0_list)-1):
-            plt.arrow(self.t_0_list[i][0], self.t_1_list[i][0], self.t_0_list[i+1][0] - self.t_0_list[i][0], self.t_1_list[i+1][0] - self.t_1_list[i][0], width=0.1)
-            #ax.scatter(self.t_0_list[i], self.t_1_list[i], self.rss(np.array([self.t_0_list[i], self.t_1_list[i]]))+100, s=50, color="red")
-            
-        #ax.scatter(t_0, t_1, self.rss(np.array([t_0, t_1]))+100, s=100, color="red")
-        surf = ax.contourf(xx, yy, Z, cmap='viridis', alpha=0.4)
-        figure.colorbar(surf, shrink=0.5, aspect=10)
-        ax.set_xlabel("b", fontsize=13, labelpad=6)
-        ax.set_ylabel("m", fontsize=13, labelpad=6)
-        ax.set_title("RSS = {}".format(self.rss(np.array([t_0, t_1]))))
-        return figure
-

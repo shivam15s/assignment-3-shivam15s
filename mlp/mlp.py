@@ -1,5 +1,5 @@
 #import numpy as np
-#import pandas as pd
+import pandas as pd
 import matplotlib.pyplot as plt
 import math
 from autograd import grad
@@ -9,10 +9,11 @@ from autograd.misc.optimizers import adam
 # Import Autograd modules here
 
 class MLP():
-    def __init__(self, X, y, hl_sizes, activations, labels):
+    def __init__(self, X, y, hl_sizes, activations, labels, regression=False):
         self.X = X
         self.y = y
         self.params = []
+        self.regression = regression
         k = labels
         if len(hl_sizes)==0:
             self.params.append([np.ones(shape=(X.shape[1], k)), np.ones(shape=(k))])
@@ -54,7 +55,6 @@ class MLP():
         x -= np.max(x, axis=1)[:, np.newaxis]
         return np.exp(x)/np.sum(np.exp(x), axis=1)[:, np.newaxis]
 
-
     def forward_pass(self, params):
         computed = self.X
 
@@ -63,19 +63,36 @@ class MLP():
             computed = self.activations[i](computed)
 
         computed = np.dot(computed, params[-1][0]) + params[-1][1].T
-        return self.softmax(computed)
+        if self.regression:
+            return computed
+        else:
+            return self.softmax(computed)
+
+    def rss(self, params):
+        pred = self.forward_pass(params)
+        cost = 0.0
+        y_temp = np.array(self.y)
+        cost = np.sum((pred - y_temp[:, np.newaxis]) ** 2)
+
+        #print(cost)
+        return cost
+
 
     def xentropy(self, params):
         pred = self.forward_pass(params)
         cost = 0.0
         for i in range(self.X.shape[0]):
             cost -= np.log(pred[i, self.y.iloc[i]])
-        print(cost)
+        #print(cost)
         return cost
 
     def update(self, alpha):
-        grad_xent = grad(self.xentropy)
-        grad_curr = grad_xent(self.params)
+        if self.regression:
+            grad_fun = grad(self.rss)
+        else:
+            grad_fun = grad(self.xentropy)
+
+        grad_curr = grad_fun(self.params)
             
         for i in range(len(self.params)):
             self.params[i][0] -= (alpha/self.X.shape[0]) * grad_curr[i][0]
@@ -108,9 +125,12 @@ class MLP():
             computed = self.activations[i](computed)
 
         computed = np.dot(computed, self.params[-1][0]) + self.params[-1][1].T
-        computed = self.softmax(computed)
 
-        return np.argmax(computed, axis=1)
+        if self.regression:
+            return computed.reshape(computed.shape[0],)
+        else:
+            computed = self.softmax(computed)
+            return np.argmax(computed, axis=1)
 
 
 
