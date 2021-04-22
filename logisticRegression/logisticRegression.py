@@ -17,8 +17,6 @@ class LogisticRegression():
         self.coef_ = None #Replace with numpy array or pandas series of coefficients learned using using the fit methods
         self.X = None
         self.y = None
-        self.t_0_list = None
-        self.t_1_list = None
 
 
 
