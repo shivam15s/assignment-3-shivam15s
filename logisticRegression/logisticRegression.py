@@ -157,11 +157,12 @@ class LogisticRegression():
         label0 = X_df[self.y==0]
         label1 = X_df[self.y==1]
 
-        plt.scatter(label0[1], label0[2], color='green', label='0')
-        plt.scatter(label1[1], label1[2], color='blue', label='1')
+        plt.scatter(label0[1], label0[2], color='green', label='Label = 0')
+        plt.scatter(label1[1], label1[2], color='blue', label='Label = 1')
 
         plt.xlabel("Attribute x1")
         plt.ylabel("Attribute x2")
         plt.title("Logistic Regression on Breast Cancer Dataset")
+        plt.legend(loc='lower right')
         #plt.show()
         return figure
